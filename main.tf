@@ -4,12 +4,16 @@ terraform {
       source  = "bpg/proxmox"
       version = "~> 0.66"
     }
+    vault = {
+      source  = "hashicorp/vault"
+      version = "~> 4.0"
+    }
   }
 }
 
 provider "proxmox" {
   endpoint  = "https://10.10.10.10:8006/"
-  api_token = var.proxmox_api_token
+  api_token = data.vault_kv_secret_v2.proxmox.data["token"]
   insecure  = true
 }
 

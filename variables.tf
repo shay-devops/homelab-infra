@@ -1,9 +1,3 @@
-variable "proxmox_api_token" {
-  description = "Proxmox API token in the form root@pam!terraform=SECRET"
-  type        = string
-  sensitive   = true
-}
-
 variable "ssh_public_key" {
   type    = string
   default = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB6aL2nbE7H1iolDykV/Zqa5LtYJm+yv4kRKGkSQtOzF shayan-homelab"
@@ -28,4 +22,15 @@ variable "vms" {
       mac_address = "BC:24:11:00:10:01"
     }
   }
+
+}
+variable "vault_role_id" {
+  description = "AppRole RoleID for Terraform's Vault authentication"
+  type        = string
+}
+
+variable "vault_secret_id" {
+  description = "AppRole SecretID for Terraform's Vault authentication"
+  type        = string
+  sensitive   = true
 }
