@@ -31,16 +31,23 @@ variable "vms" {
     k3s-worker = {
       vm_id       = 102
       cores       = 2
-      memory_mb   = 9216
+      memory_mb   = 8192
       disk_gb     = 65
       mac_address = "BC:24:11:00:10:03"
     }
-    hudu = {
+    ansible-control = {
       vm_id       = 103
       cores       = 1
       memory_mb   = 1024
       disk_gb     = 20
       mac_address = "BC:24:11:00:10:04"
+    }
+    it-docs = {
+      vm_id       = 104
+      cores       = 1
+      memory_mb   = 2048
+      disk_gb     = 20
+      mac_address = "BC:24:11:00:10:05"
     }
   }
 }
