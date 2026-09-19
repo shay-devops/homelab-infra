@@ -1,0 +1,6 @@
+---
+- name: Deploy Vaultwarden and BookStack to it-docs
+  hosts: it_docs
+  become: true
+  roles:
+    - it_docs

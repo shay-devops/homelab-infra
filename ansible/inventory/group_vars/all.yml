@@ -1,4 +1,7 @@
 vault_addr: "https://10.10.10.50:8200"
 vault_role_id: "863cec2d-5998-7382-f421-18a463d7deff"
-vault_ca_cert: "/home/shayan/ansible/certs/vault-cert.crt"
+vault_ca_cert: "/home/shayan/homelab-infra/ansible/certs/vault-cert.crt"
 k3s_server_url: "https://10.10.10.51:6443"
+it_docs_domain: home.lab
+vaultwarden_hostname: vaultwarden.home.lab
+bookstack_hostname: docs.home.lab

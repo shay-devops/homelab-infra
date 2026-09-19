@@ -1,0 +1,9 @@
+{{ vaultwarden_hostname }} {
+    reverse_proxy vaultwarden:80
+    tls internal
+}
+
+{{ bookstack_hostname }} {
+    reverse_proxy bookstack:80
+    tls internal
+}

@@ -1,0 +1,7 @@
+---
+- name: Restart it-docs stack
+  ansible.builtin.command: docker compose -f /opt/it-docs/docker-compose.yml up -d 
+  args:
+    chdir: /opt/it-docs
+  become: true
+  changed_when: true
