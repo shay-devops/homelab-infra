@@ -1,3 +1,8 @@
+variable "ansible_control_ssh_public_key" {
+  type    = string
+  default = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMSknXaQK+DOO4Pi9Qa47WVkDNG8s0MUMSTW3OFxRDqu ansible-control"
+}
+
 variable "ssh_public_key" {
   type    = string
   default = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB6aL2nbE7H1iolDykV/Zqa5LtYJm+yv4kRKGkSQtOzF shayan-homelab"

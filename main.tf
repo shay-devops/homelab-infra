@@ -52,7 +52,7 @@ resource "proxmox_virtual_environment_vm" "vm" {
 
     user_account {
       username = "shayan"
-      keys     = [var.ssh_public_key]
+      keys     = [var.ssh_public_key, var.ansible_control_ssh_public_key]
     }
   }
 
