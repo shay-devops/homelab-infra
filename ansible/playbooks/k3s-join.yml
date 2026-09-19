@@ -1,0 +1,6 @@
+---
+- name: Join k3s worker nodes to the cluster
+  hosts: k3s_workers
+  become: true
+  roles:
+    - k3s_join
