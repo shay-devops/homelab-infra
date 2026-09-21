@@ -1,0 +1,22 @@
+# Upstream ships replicas: 2 and a memory-only request (400Mi, no CPU bound
+# at all) — fine for a real multi-node HA cluster, actively dangerous on a
+# single 1-vCPU node where Prometheus would otherwise be free to consume the
+# entire core with no ceiling, starving the Operator, Grafana, and k3s's own
+# system pods sharing the node.
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: k8s
+  namespace: monitoring
+spec:
+  replicas: 1
+  nodeSelector:
+    kubernetes.io/os: linux
+    kubernetes.io/hostname: k3s-worker
+  resources:
+    requests:
+      cpu: 200m
+      memory: 400Mi
+    limits:
+      cpu: 500m
+      memory: 800Mi

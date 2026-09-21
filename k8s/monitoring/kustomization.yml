@@ -1,0 +1,74 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - vendor/setup/0alertmanagerConfigCustomResourceDefinition.yaml
+  - vendor/setup/0alertmanagerCustomResourceDefinition.yaml
+  - vendor/setup/0podmonitorCustomResourceDefinition.yaml
+  - vendor/setup/0probeCustomResourceDefinition.yaml
+  - vendor/setup/0prometheusCustomResourceDefinition.yaml
+  - vendor/setup/0prometheusagentCustomResourceDefinition.yaml
+  - vendor/setup/0prometheusruleCustomResourceDefinition.yaml
+  - vendor/setup/0scrapeconfigCustomResourceDefinition.yaml
+  - vendor/setup/0servicemonitorCustomResourceDefinition.yaml
+  - vendor/setup/0thanosrulerCustomResourceDefinition.yaml
+  - vendor/setup/namespace.yaml
+  - vendor/manifests/grafana-config.yaml
+  - vendor/manifests/grafana-dashboardDatasources.yaml
+  - vendor/manifests/grafana-dashboardDefinitions.yaml
+  - vendor/manifests/grafana-dashboardSources.yaml
+  - vendor/manifests/grafana-deployment.yaml
+  - vendor/manifests/grafana-networkPolicy.yaml
+  - vendor/manifests/grafana-prometheusRule.yaml
+  - vendor/manifests/grafana-service.yaml
+  - vendor/manifests/grafana-serviceAccount.yaml
+  - vendor/manifests/grafana-serviceMonitor.yaml
+  - vendor/manifests/kubePrometheus-prometheusRule.yaml
+  - vendor/manifests/kubeStateMetrics-clusterRole.yaml
+  - vendor/manifests/kubeStateMetrics-clusterRoleBinding.yaml
+  - vendor/manifests/kubeStateMetrics-deployment.yaml
+  - vendor/manifests/kubeStateMetrics-networkPolicy.yaml
+  - vendor/manifests/kubeStateMetrics-prometheusRule.yaml
+  - vendor/manifests/kubeStateMetrics-service.yaml
+  - vendor/manifests/kubeStateMetrics-serviceAccount.yaml
+  - vendor/manifests/kubeStateMetrics-serviceMonitor.yaml
+  - vendor/manifests/kubernetesControlPlane-prometheusRule.yaml
+  - vendor/manifests/kubernetesControlPlane-serviceMonitorApiserver.yaml
+  - vendor/manifests/kubernetesControlPlane-serviceMonitorCoreDNS.yaml
+  - vendor/manifests/kubernetesControlPlane-serviceMonitorKubeControllerManager.yaml
+  - vendor/manifests/kubernetesControlPlane-serviceMonitorKubeScheduler.yaml
+  - vendor/manifests/kubernetesControlPlane-serviceMonitorKubelet.yaml
+  - vendor/manifests/nodeExporter-clusterRole.yaml
+  - vendor/manifests/nodeExporter-clusterRoleBinding.yaml
+  - vendor/manifests/nodeExporter-daemonset.yaml
+  - vendor/manifests/nodeExporter-networkPolicy.yaml
+  - vendor/manifests/nodeExporter-prometheusRule.yaml
+  - vendor/manifests/nodeExporter-service.yaml
+  - vendor/manifests/nodeExporter-serviceAccount.yaml
+  - vendor/manifests/nodeExporter-serviceMonitor.yaml
+  - vendor/manifests/prometheus-clusterRole.yaml
+  - vendor/manifests/prometheus-clusterRoleBinding.yaml
+  - vendor/manifests/prometheus-networkPolicy.yaml
+  - vendor/manifests/prometheus-prometheus.yaml
+  - vendor/manifests/prometheus-prometheusRule.yaml
+  - vendor/manifests/prometheus-roleBindingConfig.yaml
+  - vendor/manifests/prometheus-roleBindingSpecificNamespaces.yaml
+  - vendor/manifests/prometheus-roleConfig.yaml
+  - vendor/manifests/prometheus-roleSpecificNamespaces.yaml
+  - vendor/manifests/prometheus-service.yaml
+  - vendor/manifests/prometheus-serviceAccount.yaml
+  - vendor/manifests/prometheus-serviceMonitor.yaml
+  - vendor/manifests/prometheusOperator-clusterRole.yaml
+  - vendor/manifests/prometheusOperator-clusterRoleBinding.yaml
+  - vendor/manifests/prometheusOperator-deployment.yaml
+  - vendor/manifests/prometheusOperator-networkPolicy.yaml
+  - vendor/manifests/prometheusOperator-prometheusRule.yaml
+  - vendor/manifests/prometheusOperator-service.yaml
+  - vendor/manifests/prometheusOperator-serviceAccount.yaml
+  - vendor/manifests/prometheusOperator-serviceMonitor.yaml
+
+patches:
+  - path: patches/prometheus-sizing.yaml
+  - path: patches/grafana-sizing.yaml
+  - path: patches/prometheus-operator-sizing.yaml
+  - path: patches/kube-state-metrics-sizing.yaml

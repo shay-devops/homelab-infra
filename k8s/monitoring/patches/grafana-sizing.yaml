@@ -1,0 +1,12 @@
+# Pin Grafana to k3s-worker so this observability stack stays isolated from
+# k3s-control's own control-plane workload, per the original placement intent.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: k3s-worker

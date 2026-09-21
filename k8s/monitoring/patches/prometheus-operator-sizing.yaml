@@ -1,0 +1,21 @@
+# Upstream's own request/limit (100m/200m cpu, 100Mi/200Mi mem) is already
+# reasonable for a single-node lab and is left unchanged here — this patch
+# exists as a documented no-op rather than silently trusting upstream, so
+# the decision is visible in the overlay rather than only in my head.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-operator
+  namespace: monitoring
+spec:
+  template:
+    spec:
+      containers:
+        - name: prometheus-operator
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 200m
+              memory: 200Mi

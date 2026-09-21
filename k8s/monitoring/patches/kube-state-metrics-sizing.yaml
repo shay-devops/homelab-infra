@@ -1,0 +1,23 @@
+# Upstream ships a request (cpu: 10m, memory: 190Mi) and a memory limit
+# (250Mi) but NO cpu limit — same unbounded-CPU pattern as Prometheus itself,
+# just smaller in practice. Adding an explicit ceiling so it can't spike
+# unpredictably during a full-cluster metrics scrape on a 1-vCPU node.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-state-metrics
+  namespace: monitoring
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: k3s-worker
+      containers:
+        - name: kube-state-metrics
+          resources:
+            requests:
+              cpu: 10m
+              memory: 190Mi
+            limits:
+              cpu: 100m
+              memory: 250Mi
