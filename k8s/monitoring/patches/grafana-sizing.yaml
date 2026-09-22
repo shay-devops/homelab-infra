@@ -1,5 +1,19 @@
 # Pin Grafana to k3s-worker so this observability stack stays isolated from
 # k3s-control's own control-plane workload, per the original placement intent.
+#
+# Resource limits: upstream kube-prometheus ships Grafana with a 200Mi memory
+# limit, which is too tight for active use (interactive dashboard rendering
+# with ~30 provisioned dashboards) - observed OOMKilled (exit 137) under real
+# browser use, causing readiness-probe failures and brief Traefik "no
+# available server" errors while the container restarted. Raised to 512Mi
+# limit / 256Mi request.
+#
+# Storage: upstream ships Grafana's /var/lib/grafana on an EmptyDir, so the
+# SQLite DB (admin password, users, UI-managed state) is wiped on every pod
+# restart - surfaced when the OOM crash-loop above reset the admin password
+# back to the default. Replaced with a PVC backed by k3s's local-path
+# provisioner. emptyDir explicitly nulled so the strategic-merge patch
+# removes it rather than leaving both fields set on the same volume object.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -10,3 +24,17 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/hostname: k3s-worker
+      containers:
+        - name: grafana
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+      volumes:
+        - name: grafana-storage
+          emptyDir: null
+          persistentVolumeClaim:
+            claimName: grafana-storage

@@ -23,6 +23,8 @@ resources:
   - vendor/manifests/grafana-service.yaml
   - vendor/manifests/grafana-serviceAccount.yaml
   - vendor/manifests/grafana-serviceMonitor.yaml
+  - grafana-pvc.yaml
+  - grafana-ingress.yaml
   - vendor/manifests/kubePrometheus-prometheusRule.yaml
   - vendor/manifests/kubeStateMetrics-clusterRole.yaml
   - vendor/manifests/kubeStateMetrics-clusterRoleBinding.yaml
@@ -72,3 +74,4 @@ patches:
   - path: patches/grafana-sizing.yaml
   - path: patches/prometheus-operator-sizing.yaml
   - path: patches/kube-state-metrics-sizing.yaml
+  - path: patches/grafana-networkpolicy.yaml
