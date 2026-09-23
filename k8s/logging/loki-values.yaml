@@ -1,0 +1,62 @@
+# Loki values override - single-binary mode, sized for a 2-node homelab
+# k3s cluster. Sizing based on kubectl top nodes / describe node output.
+
+deploymentMode: SingleBinary
+
+singleBinary:
+  replicas: 1
+  nodeSelector:
+    kubernetes.io/hostname: k3s-worker
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    enabled: true
+    storageClass: local-path
+    size: 5Gi
+
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+
+# Both default to enabled: true with production-scale memory allocations
+# (chunksCache: 8192Mi, resultsCache: 1024Mi) - the chunksCache request
+# alone exceeded total allocatable memory on both nodes, causing a
+# FailedScheduling/Insufficient memory error. These caches speed up
+# repeated queries against large log volumes; at this lab's log volume
+# the benefit doesn't justify two more StatefulSets and the memory cost,
+# so both are disabled rather than resized.
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+
+gateway:
+  enabled: false
+test:
+  enabled: false
+lokiCanary:
+  enabled: false
