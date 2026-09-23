@@ -1,0 +1,24 @@
+image:
+  registry: "quay.io"
+  repository: "k3rnel-pan1c/uptime-kuma"
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 100Mi
+  limits:
+    cpu: 150m
+    memory: 256Mi
+
+persistence:
+  enabled: true
+  sizeLimit: 1Gi
+  storageClass: "local-path"
+
+nodeSelector:
+  kubernetes.io/hostname: k3s-worker
+
+service:
+  type: ClusterIP
+  port: 80
