@@ -29,14 +29,14 @@ variable "vms" {
     k3s-control = {
       vm_id       = 101
       cores       = 1
-      memory_mb   = 2048
+      memory_mb   = 4096
       disk_gb     = 16
       mac_address = "BC:24:11:00:10:02"
     }
     k3s-worker = {
       vm_id       = 102
       cores       = 2
-      memory_mb   = 8192
+      memory_mb   = 6144
       disk_gb     = 65
       mac_address = "BC:24:11:00:10:03"
     }
