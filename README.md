@@ -12,7 +12,7 @@ Five VMs run on a single Proxmox host (pve):
 | k3s-control | k3s control-plane (API server, scheduler, etcd) | 1 | 4GB | Resized from 2GB after a capacity incident -- see Incidents below |
 | k3s-worker | k3s worker node -- runs all cluster workloads | 2 | 6GB | Resized from 8GB; real usage is well under 2GB, so this still has headroom |
 | ansible-control | Control node for Ansible and Terraform | 1 | 1GB | Where IaC is actually run from (see Tooling location) |
-| it-docs | BookStack documentation wiki | 1 | 2GB | Build journal / runbook documentation |
+| it-docs | BookStack documentation wiki + VaultWarden Password Manager | 1 | 2GB | Credential Vault / runbook documentation |
 
 ## Repo layout
 
