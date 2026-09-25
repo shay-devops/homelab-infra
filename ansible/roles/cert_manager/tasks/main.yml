@@ -1,0 +1,104 @@
+---
+- name: Ensure cert-manager namespace exists
+  kubernetes.core.k8s:
+    name: cert-manager
+    api_version: v1
+    kind: Namespace
+    state: present
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+
+- name: Add Jetstack Helm repo
+  kubernetes.core.helm_repository:
+    name: jetstack
+    repo_url: https://charts.jetstack.io
+
+- name: Render cert-manager Helm values
+  ansible.builtin.template:
+    src: cert-manager-values.yaml.j2
+    dest: /tmp/cert-manager-values.yaml
+    mode: '0600'
+
+- name: Deploy cert-manager via Helm
+  kubernetes.core.helm:
+    name: cert-manager
+    chart_ref: jetstack/cert-manager
+    chart_version: "v1.21.1"
+    release_namespace: cert-manager
+    create_namespace: false
+    values_files:
+      - /tmp/cert-manager-values.yaml
+    wait: true
+    wait_timeout: 5m
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+
+- name: Remove rendered values file from disk
+  ansible.builtin.file:
+    path: /tmp/cert-manager-values.yaml
+    state: absent
+
+- name: Deploy bootstrap self-signed ClusterIssuer manifest
+  ansible.builtin.template:
+    src: bootstrap-issuer.yaml.j2
+    dest: /tmp/bootstrap-issuer.yaml
+    mode: '0600'
+
+- name: Apply bootstrap ClusterIssuer
+  kubernetes.core.k8s:
+    state: present
+    src: /tmp/bootstrap-issuer.yaml
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+
+- name: Deploy root CA Certificate manifest
+  ansible.builtin.template:
+    src: root-ca-cert.yaml.j2
+    dest: /tmp/root-ca-cert.yaml
+    mode: '0600'
+
+- name: Apply root CA Certificate
+  kubernetes.core.k8s:
+    state: present
+    src: /tmp/root-ca-cert.yaml
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+
+- name: Wait for root CA Certificate to be Ready
+  kubernetes.core.k8s_info:
+    api_version: cert-manager.io/v1
+    kind: Certificate
+    name: homelab-ca-cert
+    namespace: cert-manager
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  register: ca_cert_status
+  until: >
+    ca_cert_status.resources | length > 0 and
+    ca_cert_status.resources[0].status.conditions | default([]) |
+    selectattr('type', 'equalto', 'Ready') |
+    map(attribute='status') | first | default('False') == 'True'
+  retries: 12
+  delay: 5
+
+- name: Deploy homelab-ca ClusterIssuer manifest
+  ansible.builtin.template:
+    src: ca-issuer.yaml.j2
+    dest: /tmp/ca-issuer.yaml
+    mode: '0600'
+
+- name: Apply homelab-ca ClusterIssuer
+  kubernetes.core.k8s:
+    state: present
+    src: /tmp/ca-issuer.yaml
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+
+- name: Remove issuer/certificate rendered files from disk
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/bootstrap-issuer.yaml
+    - /tmp/root-ca-cert.yaml
+    - /tmp/ca-issuer.yaml

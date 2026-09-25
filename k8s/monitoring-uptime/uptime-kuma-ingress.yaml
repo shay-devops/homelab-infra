@@ -3,8 +3,14 @@ kind: Ingress
 metadata:
   name: uptime-kuma
   namespace: monitoring
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca
 spec:
   ingressClassName: traefik
+  tls:
+    - secretName: uptime-kuma-tls-cert
+      hosts:
+        - uptime.home.lab
   rules:
     - host: uptime.home.lab
       http:

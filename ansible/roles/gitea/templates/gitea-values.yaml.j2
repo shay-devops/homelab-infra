@@ -42,7 +42,13 @@ gitea:
 ingress:
   enabled: true
   className: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca
   hosts:
     - host: git.home.lab
       paths:
         - path: /
+  tls:
+    - secretName: gitea-tls-cert
+      hosts:
+        - git.home.lab

@@ -1,0 +1,31 @@
+crds:
+  enabled: true
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 32Mi
+  limits:
+    cpu: 75m
+    memory: 96Mi
+
+webhook:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 30m
+      memory: 48Mi
+
+cainjector:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 30m
+      memory: 96Mi
+global:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-worker

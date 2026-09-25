@@ -1,0 +1,7 @@
+---
+- name: Deploy cert-manager to k3s
+  hosts: localhost
+  connection: local
+  become: false
+  roles:
+    - cert_manager
