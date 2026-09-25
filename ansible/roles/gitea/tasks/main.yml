@@ -1,0 +1,73 @@
+---
+- name: Retrieve Gitea Postgres password from Vault
+  ansible.builtin.set_fact:
+    gitea_postgres_password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'gitea/postgres', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.password }}"
+  no_log: true
+
+- name: Retrieve Gitea admin credentials from Vault
+  ansible.builtin.set_fact:
+    gitea_admin_username: "{{ lookup('community.hashi_vault.vault_kv2_get', 'gitea/admin', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.username }}"
+    gitea_admin_password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'gitea/admin', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.password }}"
+    gitea_admin_email: "{{ lookup('community.hashi_vault.vault_kv2_get', 'gitea/admin', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.email }}"
+  no_log: true
+
+- name: Ensure gitea namespace exists
+  kubernetes.core.k8s:
+    name: gitea
+    api_version: v1
+    kind: Namespace
+    state: present
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+
+- name: Deploy Gitea admin Secret manifest
+  ansible.builtin.template:
+    src: gitea-admin-secret.yaml.j2
+    dest: /tmp/gitea-admin-secret.yaml
+    mode: '0600'
+  no_log: true
+
+- name: Apply Gitea admin Secret to cluster
+  kubernetes.core.k8s:
+    state: present
+    src: /tmp/gitea-admin-secret.yaml
+    namespace: gitea
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+
+- name: Remove rendered admin Secret file from disk
+  ansible.builtin.file:
+    path: /tmp/gitea-admin-secret.yaml
+    state: absent
+
+- name: Add Gitea Helm repo
+  kubernetes.core.helm_repository:
+    name: gitea-charts
+    repo_url: https://dl.gitea.com/charts/
+
+- name: Render Gitea Helm values
+  ansible.builtin.template:
+    src: gitea-values.yaml.j2
+    dest: /tmp/gitea-values.yaml
+    mode: '0600'
+  no_log: true
+
+- name: Deploy Gitea via Helm
+  kubernetes.core.helm:
+    name: gitea
+    chart_ref: gitea-charts/gitea
+    chart_version: "12.7.0"
+    release_namespace: gitea
+    create_namespace: false
+    values_files:
+      - /tmp/gitea-values.yaml
+    wait: true
+    wait_timeout: 5m
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
+  no_log: true
+
+- name: Remove rendered values file from disk
+  ansible.builtin.file:
+    path: /tmp/gitea-values.yaml
+    state: absent

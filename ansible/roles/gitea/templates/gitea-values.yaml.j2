@@ -1,0 +1,48 @@
+persistence:
+  enabled: true
+  size: 10Gi
+
+strategy:
+  type: Recreate
+
+postgresql-ha:
+  enabled: false
+
+valkey:
+  enabled: false
+
+valkey-cluster:
+  enabled: false
+
+postgresql:
+  enabled: true
+  global:
+    postgresql:
+      auth:
+        username: gitea
+        database: gitea
+        password: "{{ gitea_postgres_password }}"
+
+gitea:
+  admin:
+    existingSecret: gitea-admin-secret
+    email: "{{ gitea_admin_email }}"
+    passwordMode: keepUpdated
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+  config:
+    server:
+      DOMAIN: git.home.lab
+      ROOT_URL: http://git.home.lab/
+
+ingress:
+  enabled: true
+  className: traefik
+  hosts:
+    - host: git.home.lab
+      paths:
+        - path: /

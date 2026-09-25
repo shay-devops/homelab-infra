@@ -5,3 +5,4 @@ k3s_server_url: "https://10.10.10.51:6443"
 it_docs_domain: home.lab
 vaultwarden_hostname: vaultwarden.home.lab
 bookstack_hostname: docs.home.lab
+kubeconfig_path: "/home/shayan/.kube/config"

@@ -1,0 +1,7 @@
+---
+- name: Deploy Gitea to k3s
+  hosts: localhost
+  connection: local
+  become: false
+  roles:
+    - gitea
