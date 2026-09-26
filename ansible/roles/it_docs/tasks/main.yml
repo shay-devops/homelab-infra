@@ -14,6 +14,21 @@
     mariadb_app_password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'it-docs/mariadb', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.app_password }}"
   no_log: true
 
+- name: Retrieve Okta BookStack client ID from Vault
+  ansible.builtin.set_fact:
+    okta_bookstack_client_id: "{{ lookup('community.hashi_vault.vault_kv2_get', 'okta/bookstack', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.client_id }}"
+  no_log: true
+
+- name: Retrieve Okta BookStack client secret from Vault
+  ansible.builtin.set_fact:
+    okta_bookstack_client_secret: "{{ lookup('community.hashi_vault.vault_kv2_get', 'okta/bookstack', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.client_secret }}"
+  no_log: true
+
+- name: Retrieve Okta issuer URL for BookStack from Vault
+  ansible.builtin.set_fact:
+    okta_bookstack_issuer: "{{ lookup('community.hashi_vault.vault_kv2_get', 'okta/bookstack', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.issuer }}"
+  no_log: true
+
 - name: Retrieve BookStack APP_KEY from Vault
   ansible.builtin.set_fact:
     bookstack_app_key: "{{ lookup('community.hashi_vault.vault_kv2_get', 'it-docs/bookstack', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.app_key }}"

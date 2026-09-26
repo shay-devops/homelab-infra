@@ -46,6 +46,16 @@ services:
       DB_USERNAME: bookstack
       DB_PASSWORD: "{{ mariadb_app_password }}"
       DB_DATABASE: bookstack
+      AUTH_METHOD: "oidc"
+      AUTH_AUTO_INITIATE: "false"
+      OIDC_NAME: "Okta"
+      OIDC_ISSUER: "{{ okta_bookstack_issuer }}"
+      OIDC_ISSUER_DISCOVER: "true"
+      OIDC_CLIENT_ID: "{{ okta_bookstack_client_id }}"
+      OIDC_CLIENT_SECRET: "{{ okta_bookstack_client_secret }}"
+      OIDC_DISPLAY_NAME_CLAIMS: "name"
+      OIDC_GROUPS_CLAIM: "groups"
+      OIDC_USER_TO_GROUPS: "true"
     volumes:
       - /opt/it-docs/bookstack:/config
 
