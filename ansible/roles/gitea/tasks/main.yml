@@ -11,6 +11,21 @@
     gitea_admin_email: "{{ lookup('community.hashi_vault.vault_kv2_get', 'gitea/admin', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.email }}"
   no_log: true
 
+- name: Retrieve Okta Gitea client ID from Vault
+  ansible.builtin.set_fact:
+    okta_gitea_client_id: "{{ lookup('community.hashi_vault.vault_kv2_get', 'okta/gitea', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.client_id }}"
+  no_log: true
+
+- name: Retrieve Okta Gitea client secret from Vault
+  ansible.builtin.set_fact:
+    okta_gitea_client_secret: "{{ lookup('community.hashi_vault.vault_kv2_get', 'okta/gitea', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.client_secret }}"
+  no_log: true
+
+- name: Retrieve Okta issuer URL for Gitea from Vault
+  ansible.builtin.set_fact:
+    okta_gitea_issuer: "{{ lookup('community.hashi_vault.vault_kv2_get', 'okta/gitea', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.issuer }}"
+  no_log: true
+
 - name: Ensure gitea namespace exists
   kubernetes.core.k8s:
     name: gitea

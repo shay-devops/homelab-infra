@@ -29,6 +29,16 @@ gitea:
     email: "{{ gitea_admin_email }}"
     passwordMode: keepUpdated
 
+  oauth:
+    - name: "Okta"
+      provider: "openidConnect"
+      key: "{{ okta_gitea_client_id }}"
+      secret: "{{ okta_gitea_client_secret }}"
+      autoDiscoverUrl: "{{ okta_gitea_issuer }}/.well-known/openid-configuration"
+      groupClaimName: "groups"
+      adminGroup: "homelab-admins"
+      restrictedGroup: "homelab-viewers"
+
   metrics:
     enabled: true
     serviceMonitor:
@@ -37,7 +47,7 @@ gitea:
   config:
     server:
       DOMAIN: git.home.lab
-      ROOT_URL: http://git.home.lab/
+      ROOT_URL: https://git.home.lab/
 
 ingress:
   enabled: true
