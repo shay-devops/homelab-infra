@@ -1,0 +1,5 @@
+---
+- name: Apply monitoring kustomization
+  ansible.builtin.command:
+    cmd: "kubectl apply -k {{ homelab_infra_repo }}/k8s/monitoring/"
+  changed_when: true

@@ -6,3 +6,4 @@ it_docs_domain: home.lab
 vaultwarden_hostname: vaultwarden.home.lab
 bookstack_hostname: docs.home.lab
 kubeconfig_path: "/home/shayan/.kube/config"
+homelab_infra_repo: "/home/shayan/homelab-infra"

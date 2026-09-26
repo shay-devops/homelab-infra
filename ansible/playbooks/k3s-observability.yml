@@ -1,0 +1,5 @@
+---
+- name: Configure Okta OIDC SSO for Grafana
+  hosts: local
+  roles:
+    - k3s_observability

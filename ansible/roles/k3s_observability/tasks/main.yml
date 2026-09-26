@@ -1,0 +1,31 @@
+---
+- name: Retrieve Okta Grafana client ID from Vault
+  ansible.builtin.set_fact:
+    okta_grafana_client_id: "{{ lookup('community.hashi_vault.vault_kv2_get', 'okta/grafana', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.client_id }}"
+  no_log: true
+
+- name: Retrieve Okta Grafana client secret from Vault
+  ansible.builtin.set_fact:
+    okta_grafana_client_secret: "{{ lookup('community.hashi_vault.vault_kv2_get', 'okta/grafana', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.client_secret }}"
+  no_log: true
+
+- name: Retrieve Okta issuer URL from Vault
+  ansible.builtin.set_fact:
+    okta_grafana_issuer: "{{ lookup('community.hashi_vault.vault_kv2_get', 'okta/grafana', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.issuer }}"
+  no_log: true
+
+- name: Template Grafana OIDC config
+  ansible.builtin.template:
+    src: grafana-oauth.yaml.j2
+    dest: "{{ homelab_infra_repo }}/k8s/monitoring/patches/grafana-oauth.yaml"
+    owner: shayan
+    group: shayan
+    mode: '0640'
+  no_log: true
+  notify: Apply monitoring kustomization
+
+- name: Ensure grafana-oauth.yaml is referenced in kustomization.yml
+  ansible.builtin.lineinfile:
+    path: "{{ homelab_infra_repo }}/k8s/monitoring/kustomization.yml"
+    insertafter: "path: patches/grafana-networkpolicy.yaml"
+    line: "  - path: patches/grafana-oauth.yaml"

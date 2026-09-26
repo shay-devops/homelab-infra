@@ -14,12 +14,19 @@
 # back to the default. Replaced with a PVC backed by k3s's local-path
 # provisioner. emptyDir explicitly nulled so the strategic-merge patch
 # removes it rather than leaving both fields set on the same volume object.
+# Recreate strategy (not RollingUpdate) is required because grafana-storage
+# is a ReadWriteOnce PVC - two pods cannot mount it simultaneously, so a
+# rolling update leaves the new pod stuck failing to acquire Grafana's
+# internal search index lock while the old pod still holds the volume.
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
   namespace: monitoring
 spec:
+  strategy:
+    type: Recreate
   template:
     spec:
       nodeSelector:

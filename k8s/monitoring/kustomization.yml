@@ -75,3 +75,4 @@ patches:
   - path: patches/prometheus-operator-sizing.yaml
   - path: patches/kube-state-metrics-sizing.yaml
   - path: patches/grafana-networkpolicy.yaml
+  - path: patches/grafana-oauth.yaml
