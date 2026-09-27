@@ -1,0 +1,13 @@
+{
+  "bound_audiences": "<okta_client_id>",
+  "allowed_redirect_uris": [
+    "https://hashicorpvault.home.lab:8200/ui/vault/auth/oidc/oidc/callback",
+    "http://localhost:8250/oidc/callback"
+  ],
+  "user_claim": "sub",
+  "bound_claims_type": "string",
+  "bound_claims": {"groups": "homelab-admins"},
+  "policies": ["homelab-admin-policy"],
+  "ttl": "1h",
+  "max_ttl": "4h"
+}
