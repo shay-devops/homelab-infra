@@ -1,0 +1,6 @@
+---
+- name: Configure Pi-hole on raspi
+  hosts: raspberry_pi
+  become: true
+  roles:
+    - pihole

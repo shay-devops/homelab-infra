@@ -1,0 +1,86 @@
+---
+- name: Check that Pi-hole is already installed
+  ansible.builtin.stat:
+    path: /etc/pihole/pihole.toml
+  register: pihole_toml
+
+- name: Stop early if Pi-hole is missing (this role manages settings only)
+  ansible.builtin.assert:
+    that: pihole_toml.stat.exists
+    fail_msg: "Pi-hole is not installed. This role manages settings only; install Pi-hole first (see README)."
+
+- name: Confirm pihole-FTL is callable under sudo
+  ansible.builtin.command: pihole-FTL --version
+  changed_when: false
+  check_mode: false
+
+- name: Retrieve Pi-hole admin password from Vault
+  ansible.builtin.set_fact:
+    pihole_admin_password: "{{ lookup('community.hashi_vault.vault_kv2_get', 'raspi/pihole', engine_mount_point='homelab', url=vault_addr, auth_method='approle', role_id=vault_role_id, secret_id=lookup('env', 'ANSIBLE_VAULT_SECRET_ID'), ca_cert=vault_ca_cert).secret.password }}"
+  no_log: true
+
+- name: Refuse an empty or too-short admin password
+  ansible.builtin.assert:
+    that: pihole_admin_password | length >= pihole_min_password_length
+    fail_msg: "Vault password for raspi/pihole is shorter than {{ pihole_min_password_length }} characters. An empty value would remove dashboard authentication."
+  no_log: true
+
+- name: Read current Pi-hole settings
+  ansible.builtin.command:
+    argv: ["pihole-FTL", "--config", "{{ item.key }}"]
+  loop: "{{ pihole_settings }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: pihole_current
+  changed_when: false
+  check_mode: false
+
+- name: Report settings that differ from the desired state
+  ansible.builtin.debug:
+    msg: "{{ item.item.key }}: currently '{{ item.stdout | trim }}', desired '{{ item.item.expect }}'"
+  loop: "{{ pihole_current.results }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+  when: item.stdout | trim != item.item.expect
+
+- name: Apply only the settings that differ
+  ansible.builtin.command:
+    argv: ["pihole-FTL", "--config", "{{ item.item.key }}", "{{ item.item.set }}"]
+  loop: "{{ pihole_current.results }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+  when: item.stdout | trim != item.item.expect
+  notify: Restart pihole-FTL
+
+- name: Pin eth0 DNS to the FortiGate and ignore DHCP-provided DNS
+  community.general.nmcli:
+    conn_name: "{{ pihole_nm_connection }}"
+    type: ethernet
+    ifname: eth0
+    dns4:
+      - "{{ pihole_nm_dns }}"
+    dns4_ignore_auto: true
+    state: present
+
+- name: Test the Vault password against the local Pi-hole API
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ pihole_web_port }}/api/auth"
+    method: POST
+    body_format: json
+    body:
+      password: "{{ pihole_admin_password }}"
+    status_code: [200, 401]
+  register: pihole_auth_check
+  changed_when: false
+  check_mode: false
+  no_log: true
+
+- name: Report whether the Vault password already matches Pi-hole
+  ansible.builtin.debug:
+    msg: "Vault password {{ 'matches' if pihole_auth_check.status == 200 else 'does NOT match' }} the current Pi-hole login (API status {{ pihole_auth_check.status }})"
+
+- name: Set the admin password from Vault only if it does not match
+  ansible.builtin.command:
+    argv: ["pihole", "setpassword", "{{ pihole_admin_password }}"]
+  when: pihole_auth_check.status == 401
+  no_log: true

@@ -1,0 +1,25 @@
+---
+ansible_python_interpreter: /usr/bin/python3
+
+pihole_web_port: 80
+pihole_min_password_length: 8
+pihole_nm_connection: "Wired connection 1"
+pihole_nm_dns: "10.10.10.1"
+
+# set = value written to pihole-FTL; expect = what --config prints back
+pihole_settings:
+  - key: dns.upstreams
+    set: '[ "10.10.10.1" ]'
+    expect: '[ 10.10.10.1 ]'
+  - key: dns.revServers
+    set: '[ "true,10.10.10.0/24,10.10.10.1,home.lab" ]'
+    expect: '[ true,10.10.10.0/24,10.10.10.1,home.lab ]'
+  - key: dns.piholePTR
+    set: "NONE"
+    expect: "NONE"
+  - key: dns.interface
+    set: "eth0"
+    expect: "eth0"
+  - key: webserver.interface.theme
+    set: "default-darker"
+    expect: "default-darker"
