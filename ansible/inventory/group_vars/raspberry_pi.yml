@@ -23,3 +23,11 @@ pihole_settings:
   - key: webserver.interface.theme
     set: "default-darker"
     expect: "default-darker"
+
+# suricata_sensor role
+suricata_home_net: "[10.10.10.0/24]"
+suricata_capture_interface: eth1
+suricata_config_path: /etc/suricata/suricata.yaml
+suricata_rule_source: et/open
+suricata_wazuh_staging_dir: /home/admin/wazuh-staging
+suricata_wazuh_staging_owner: admin
