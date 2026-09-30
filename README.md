@@ -14,6 +14,16 @@ Five VMs run on a single Proxmox host (pve):
 | ansible-control | Control node for Ansible and Terraform | 1 | 1GB | Where IaC is actually run from (see Tooling location) |
 | it-docs | BookStack documentation wiki + VaultWarden password manager | 1 | 2GB | Credential vault / runbook documentation; both OIDC-federated except VaultWarden (see below) |
 
+## Network & edge
+
+The lab sits behind a FortiGate 60E, which is the segmentation boundary, DHCP server and authoritative DNS for `home.lab`. A TP-Link managed switch and a physical Raspberry Pi add port mirroring, LAN-wide DNS filtering and network detection. The Pi is configured through Ansible (roles `pihole` and `suricata_sensor`, inventory group `raspberry_pi`).
+
+- **FortiGate 60E**: the lab (10.10.10.0/24) is a hardware-switch interface with its own DHCP scope and WAN path, deliberately separate from the home Wi-Fi mesh instead of daisy-chained behind it. Isolation was validated: a mesh device can reach the FortiGate's WAN address but not the lab gateway. Internet access is policy-based with NAT, the `home.lab` zone lives in the FortiGate's DNS database, and a spare port is reserved for a future management network.
+- The FortiGate has no FortiGuard subscription, so it enforces stateful policy only, with no signature-based inspection. That is why Suricata is in the build and not redundant.
+- **TP-Link TL-SG108E** sits on the lab segment between the FortiGate and the Pi and Proxmox host, with no VLANs configured. Its role is the port mirror that feeds Suricata's capture NIC; the gaming PC connects directly to the FortiGate so streaming traffic never reaches the mirror.
+- **Pi-hole** is the LAN's DNS server (handed out by the FortiGate's DHCP) and forwards to the FortiGate. It is installed by hand; the role manages its settings and admin password (read from Vault).
+- **Suricata** (Debian package, ET Open rules) sniffs a dedicated USB NIC on the switch's mirror port. The role manages packages, capture-interface persistence, HOME_NET, rule updates and config validation, and stages a Wazuh log-forwarding snippet without applying it.
+
 ## Repo layout
 
 ```
@@ -110,16 +120,6 @@ All pinned to k3s-worker via nodeSelector except DaemonSets (Alloy, node-exporte
 **2026-09-23 -- k3s-control PLEG/API-server distress.** After deploying and then tearing down Kyverno (a policy-as-code admission controller, evaluated and ultimately not kept in this build), k3s-control began failing PLEG health checks and timing out on API requests. Root cause: the Kyverno teardown left several ValidatingWebhookConfiguration/MutatingWebhookConfiguration objects registered, pointing at a service that no longer existed. Every matching API write attempted a doomed webhook call before timing out, and that repeated failure cycle manifested as sustained I/O wait and PLEG failure on the control plane. Removing the dangling webhook registrations resolved it immediately (load average dropped from ~3.5 to 0.2). k3s-control's RAM was subsequently resized from 2GB to 4GB as a deliberate resilience buffer, reallocating headroom from the over-provisioned k3s-worker, even though it wasn't the primary root cause.
 
 **2026-09-27 -- Vault OIDC hostname mismatch.** Okta's app registration used `vault.home.lab` as the redirect URI host, but Vault was actually being served at `hashicorpvault.home.lab` -- a naming drift from an earlier DNS decision that nobody caught until login started failing. Diagnosed by comparing the browser's actual address bar against the registered redirect URI rather than assuming the redirect config was the problem, and confirmed against the TLS cert's SAN before fixing it in both Okta and Vault's role config to keep them in sync.
-
-## Network & edge
-
-The lab sits behind a FortiGate 60E, which is the segmentation boundary, DHCP server and authoritative DNS for `home.lab`. A TP-Link managed switch and a physical Raspberry Pi add port mirroring, LAN-wide DNS filtering and network detection. The Pi is configured through Ansible (roles `pihole` and `suricata_sensor`, inventory group `raspberry_pi`).
-
-- **FortiGate 60E**: the lab (10.10.10.0/24) is a hardware-switch interface with its own DHCP scope and WAN path, deliberately separate from the home Wi-Fi mesh instead of daisy-chained behind it. Isolation was validated: a mesh device can reach the FortiGate's WAN address but not the lab gateway. Internet access is policy-based with NAT, the `home.lab` zone lives in the FortiGate's DNS database, and a spare port is reserved for a future management network.
-- The FortiGate has no FortiGuard subscription, so it enforces stateful policy only, with no signature-based inspection. That is why Suricata is in the build and not redundant.
-- **TP-Link TL-SG108E** sits on the lab segment between the FortiGate and the Pi and Proxmox host, with no VLANs configured. Its role is the port mirror that feeds Suricata's capture NIC; the gaming PC connects directly to the FortiGate so streaming traffic never reaches the mirror.
-- **Pi-hole** is the LAN's DNS server (handed out by the FortiGate's DHCP) and forwards to the FortiGate. It is installed by hand; the role manages its settings and admin password (read from Vault).
-- **Suricata** (Debian package, ET Open rules) sniffs a dedicated USB NIC on the switch's mirror port. The role manages packages, capture-interface persistence, HOME_NET, rule updates and config validation, and stages a Wazuh log-forwarding snippet without applying it.
 
 Known limitations, stated plainly:
 - The lab is one flat network. VLAN segmentation is a planned follow-up with a FortiSwitch.
