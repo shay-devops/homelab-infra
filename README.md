@@ -34,6 +34,8 @@ export VAULT_ADDR=https://10.10.10.50:8200
 export VAULT_CACERT=/home/shayan/homelab-infra/ansible/certs/vault-cert.crt
 ```
 
+The CA file is gitignored (`ansible/certs/` is excluded), so a fresh clone will not have it. On a new host, fetch it from the Vault server's TLS listener before running anything.
+
 Terraform additionally needs, per session (deliberately never persisted to disk -- see Secrets):
 
 ```
@@ -109,9 +111,26 @@ All pinned to k3s-worker via nodeSelector except DaemonSets (Alloy, node-exporte
 
 **2026-09-27 -- Vault OIDC hostname mismatch.** Okta's app registration used `vault.home.lab` as the redirect URI host, but Vault was actually being served at `hashicorpvault.home.lab` -- a naming drift from an earlier DNS decision that nobody caught until login started failing. Diagnosed by comparing the browser's actual address bar against the registered redirect URI rather than assuming the redirect config was the problem, and confirmed against the TLS cert's SAN before fixing it in both Okta and Vault's role config to keep them in sync.
 
+## Network & edge
+
+The lab sits behind a FortiGate 60E, which is the segmentation boundary, DHCP server and authoritative DNS for `home.lab`. A TP-Link managed switch and a physical Raspberry Pi add port mirroring, LAN-wide DNS filtering and network detection. The Pi is configured through Ansible (roles `pihole` and `suricata_sensor`, inventory group `raspberry_pi`).
+
+- **FortiGate 60E**: the lab (10.10.10.0/24) is a hardware-switch interface with its own DHCP scope and WAN path, deliberately separate from the home Wi-Fi mesh instead of daisy-chained behind it. Isolation was validated: a mesh device can reach the FortiGate's WAN address but not the lab gateway. Internet access is policy-based with NAT, the `home.lab` zone lives in the FortiGate's DNS database, and a spare port is reserved for a future management network.
+- The FortiGate has no FortiGuard subscription, so it enforces stateful policy only, with no signature-based inspection. That is why Suricata is in the build and not redundant.
+- **TP-Link TL-SG108E** sits on the lab segment between the FortiGate and the Pi and Proxmox host, with no VLANs configured. Its role is the port mirror that feeds Suricata's capture NIC; the gaming PC connects directly to the FortiGate so streaming traffic never reaches the mirror.
+- **Pi-hole** is the LAN's DNS server (handed out by the FortiGate's DHCP) and forwards to the FortiGate. It is installed by hand; the role manages its settings and admin password (read from Vault).
+- **Suricata** (Debian package, ET Open rules) sniffs a dedicated USB NIC on the switch's mirror port. The role manages packages, capture-interface persistence, HOME_NET, rule updates and config validation, and stages a Wazuh log-forwarding snippet without applying it.
+
+Known limitations, stated plainly:
+- The lab is one flat network. VLAN segmentation is a planned follow-up with a FortiSwitch.
+- The SG108E mirrors one source port at a time, so the sensor sees that port's traffic (the Pi by default), not the whole segment.
+- Reboot persistence of the capture interface is built but not yet reboot-tested, because the Pi is the LAN's only DNS server and so a single point of failure.
+- The FortiGate has no reverse zone for the lab subnet, so Pi-hole cannot show client hostnames.
+- Suricata and FortiGate logs are not forwarded anywhere yet; the Wazuh side does not exist.
+
 ## On the roadmap
 
-- SIEM (Wazuh) with Suricata IDS feeding alerts into a single correlation point
+- SIEM (Wazuh) as the single correlation point for Suricata alerts, FortiGate logs and host agents (Suricata already runs; Wazuh is not built yet)
 - Vault OIDC reprovisioned via Terraform (see Identity & Access above)
 - AI-assisted alert triage (Ollama, local inference)
 - Off-site backup (AWS S3)
