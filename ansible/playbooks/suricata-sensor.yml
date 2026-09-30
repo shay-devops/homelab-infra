@@ -1,0 +1,6 @@
+---
+- name: Configure the Suricata sensor on raspi
+  hosts: raspberry_pi
+  become: true
+  roles:
+    - suricata_sensor

@@ -1,0 +1,167 @@
+---
+- name: Assert required variables are defined
+  ansible.builtin.assert:
+    that:
+      - suricata_home_net is defined
+      - suricata_capture_interface is defined
+      - suricata_config_path is defined
+      - suricata_rule_source is defined
+      - suricata_wazuh_staging_dir is defined
+      - suricata_wazuh_staging_owner is defined
+    quiet: true
+
+# state=present, not latest: a sensor should not upgrade as a side effect.
+- name: Install suricata, suricata-update and ethtool
+  ansible.builtin.apt:
+    name: [suricata, suricata-update, ethtool]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: suricata_pkgs
+
+# The package postinst auto-starts Suricata on eth0 with no rules. Stop that
+# instance only when apt just installed it, never on a converged run.
+- name: Stop the package-started default instance (fresh install only)
+  ansible.builtin.systemd:
+    name: suricata
+    state: stopped
+  when: suricata_pkgs is changed
+
+- name: Keep the capture interface unmanaged by NetworkManager
+  ansible.builtin.template:
+    src: 90-unmanaged-capture.conf.j2
+    dest: "/etc/NetworkManager/conf.d/90-unmanaged-{{ suricata_capture_interface }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload NetworkManager
+
+- name: Install the capture-interface systemd unit
+  ansible.builtin.template:
+    src: capture.service.j2
+    dest: "/etc/systemd/system/{{ suricata_capture_interface }}-capture.service"
+    owner: root
+    group: root
+    mode: "0644"
+  register: suricata_capture_unit
+
+- name: Reload systemd when the capture unit changed
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: suricata_capture_unit is changed
+
+- name: Enable and start the capture unit
+  ansible.builtin.systemd:
+    name: "{{ suricata_capture_interface }}-capture.service"
+    enabled: true
+    state: started
+
+# Only the HOME_NET and af-packet lines of suricata.yaml are managed.
+- name: Set HOME_NET
+  ansible.builtin.replace:
+    path: "{{ suricata_config_path }}"
+    regexp: '^([ ]+HOME_NET:).*$'
+    replace: '\1 "{{ suricata_home_net }}"'
+  notify: Restart suricata
+
+# interface: eth0 also appears in the pcap and pfring blocks, so this edit is
+# bounded to the af-packet block and skips the "default" entry.
+- name: Set the af-packet capture interface
+  ansible.builtin.replace:
+    path: "{{ suricata_config_path }}"
+    after: '^af-packet:'
+    before: '^[A-Za-z]'
+    regexp: '^([ ]*- interface:)[ ]+(?!default\b)\S+[ ]*$'
+    replace: '\1 {{ suricata_capture_interface }}'
+  notify: Restart suricata
+
+# enable-source exits 0 and prints "enabled" even when already enabled, so
+# check first instead of trusting its output.
+- name: List enabled rule sources
+  ansible.builtin.command: suricata-update list-enabled-sources
+  register: suricata_sources
+  changed_when: false
+  check_mode: false
+
+- name: Enable the rule source
+  ansible.builtin.command: "suricata-update enable-source {{ suricata_rule_source }}"
+  when: >-
+    (suricata_sources.stdout ~ suricata_sources.stderr)
+    is not search('(?m)^[ ]*- ' ~ suricata_rule_source ~ '[ ]*$')
+
+# suricata-update always exits 0; change detection keys on its message.
+- name: Update rules (suricata-update)
+  ansible.builtin.command: suricata-update
+  register: suricata_update
+  changed_when: "'No changes detected' not in (suricata_update.stdout ~ suricata_update.stderr)"
+  failed_when: suricata_update.rc != 0
+  notify: Restart suricata
+
+- name: Validate the configuration (suricata -T)
+  ansible.builtin.command: "suricata -T -c {{ suricata_config_path }}"
+  changed_when: false
+  check_mode: false
+
+- name: Read the effective Suricata config
+  ansible.builtin.command: "suricata --dump-config -c {{ suricata_config_path }}"
+  register: suricata_effective
+  changed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Assert the config edits took effect
+  ansible.builtin.assert:
+    that:
+      - "('vars.address-groups.HOME_NET = ' ~ suricata_home_net) in suricata_effective.stdout"
+      - "('af-packet.0.interface = ' ~ suricata_capture_interface) in suricata_effective.stdout"
+    quiet: true
+  when: not ansible_check_mode
+
+# Read-only drift checks: fail loudly, do not repair.
+- name: Read IPv4 addresses on the capture interface
+  ansible.builtin.command: "ip -4 -o addr show dev {{ suricata_capture_interface }}"
+  register: suricata_capture_addrs
+  changed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Read NetworkManager device state
+  ansible.builtin.command: nmcli -t -f DEVICE,STATE device
+  register: suricata_nm_state
+  changed_when: false
+  check_mode: false
+  when: not ansible_check_mode
+
+- name: Assert the capture interface has no IP and is unmanaged
+  ansible.builtin.assert:
+    that:
+      - suricata_capture_addrs.stdout | trim == ''
+      - (suricata_capture_interface ~ ':unmanaged') in suricata_nm_state.stdout_lines
+    quiet: true
+  when: not ansible_check_mode
+
+- name: Create the Wazuh staging directory
+  ansible.builtin.file:
+    path: "{{ suricata_wazuh_staging_dir }}"
+    state: directory
+    owner: "{{ suricata_wazuh_staging_owner }}"
+    group: "{{ suricata_wazuh_staging_owner }}"
+    mode: "0775"
+
+# Staged only. Applying it needs the Wazuh agent, which is not installed.
+- name: Stage the Wazuh localfile snippet
+  ansible.builtin.copy:
+    src: suricata-localfile.xml
+    dest: "{{ suricata_wazuh_staging_dir }}/suricata-localfile.xml"
+    owner: "{{ suricata_wazuh_staging_owner }}"
+    group: "{{ suricata_wazuh_staging_owner }}"
+    mode: "0664"
+
+- name: Run pending handlers before the final state check
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure Suricata is enabled and running
+  ansible.builtin.systemd:
+    name: suricata
+    enabled: true
+    state: started

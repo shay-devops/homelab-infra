@@ -1,0 +1,5 @@
+<!-- STAGED, NOT APPLIED. Add inside <ossec_config> in /var/ossec/etc/ossec.conf on raspi after the Wazuh agent is installed. -->
+<localfile>
+  <log_format>json</log_format>
+  <location>/var/log/suricata/eve.json</location>
+</localfile>

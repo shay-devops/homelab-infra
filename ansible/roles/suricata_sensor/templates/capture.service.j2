@@ -1,0 +1,14 @@
+[Unit]
+Description=Bring up {{ suricata_capture_interface }} as passive capture interface (no IP, promiscuous)
+After=sys-subsystem-net-devices-{{ suricata_capture_interface }}.device
+BindsTo=sys-subsystem-net-devices-{{ suricata_capture_interface }}.device
+Before=suricata.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/ip link set {{ suricata_capture_interface }} up promisc on
+ExecStop=/usr/sbin/ip link set {{ suricata_capture_interface }} promisc off
+
+[Install]
+WantedBy=multi-user.target
